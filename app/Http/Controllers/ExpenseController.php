@@ -25,6 +25,10 @@ class ExpenseController extends Controller
         if (!$user) {
             return response()->json(['message' => 'User not found in the database'], 404);
         }
+        
+         if (!preg_match('/^\d{24}$/', $request->user()->iban)) {
+            return response()->json(['message' => 'Invalid IBAN format.'], 422);
+        }
 
         $attachmentPath = $request->file('attachment')
             ? $request->file('attachment')->store('attachments', 'public')
