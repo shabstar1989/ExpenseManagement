@@ -9,8 +9,57 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
+    public function processPayment(ExpenseRequest $request)
+    {
+        $iban = $request->user->iban;
+        $amount = $request->amount;
+
+        // شناسایی بانک
+        $bankCode = substr($iban, 0, 2);
+        $bankName = $this->getBankNameByCode($bankCode);
+
+        if (!$bankName) {
+            return ['success' => false, 'message' => 'Bank not supported.'];
+        }
+
+        try {
+        
+            // callBankApi($bankName, $iban, $amount);
+            $request->status = 'paid';
+            $request->save();
+
+            Log::create([
+                'type' => 'payment',
+                'details' => "Payment of {$amount} to {$iban} via {$bankName} successful.",
+            ]);
+
+            return ['success' => true];
+        } catch (\Exception $e) {
+            Log::create([
+                'type' => 'error',
+                'details' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'message' => 'Payment failed.'];
+        }
+    }
+
+    private function getBankNameByCode($code)
+    {
+        $banks = [
+            '11' => 'meli',
+            '22' => 'pasargad',
+            '33' => 'melat',
+        ];
+
+        return $banks[$code] ?? null;
+    }
+    
     public function manualPay(Request $request)
     {
+
+
+        
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'exists:expenses,id',
@@ -22,9 +71,10 @@ class PaymentController extends Controller
 
         foreach ($expenses as $expense) {
             try {
+                
                 $bankCode = substr($expense->iban, 0, 2);
-
-                if (!in_array($bankCode, ['11', '22', '33'])) {
+                
+                if (is_null($this->getBankNameByCode($bankCode))) {
                     throw new \Exception("Unsupported bank for IBAN: {$expense->iban}");
                 }
 
