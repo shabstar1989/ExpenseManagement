@@ -26,7 +26,7 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'User not found in the database'], 404);
         }
         
-         if (!preg_match('/^\d{24}$/', $request->user()->iban)) {
+         if (!preg_match('/^\d{24}$/', $request->iban)) {
             return response()->json(['message' => 'Invalid IBAN format.'], 422);
         }
 
